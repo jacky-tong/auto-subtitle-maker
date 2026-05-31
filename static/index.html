@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zimu — 智能视频字幕生成</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #0a0a1a;
+    color: #ccd6f6;
+    min-height: 100vh;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  .bg-ambient {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 20%, rgba(99,102,241,0.12) 0%, transparent 55%),
+      radial-gradient(ellipse 60% 80% at 80% 60%, rgba(168,85,247,0.10) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 50% at 50% 80%, rgba(59,130,246,0.08) 0%, transparent 50%);
+  }
+
+  /* Navbar */
+  .navbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    padding: 16px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    transition: all 0.35s ease;
+  }
+  .navbar.scrolled {
+    background: rgba(10,10,30,0.65);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 4px 32px rgba(0,0,0,0.25);
+  }
+  .nav-brand {
+    font-size: 1.3rem; font-weight: 800; letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #a5b4fc, #c4b5fd);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .nav-links { display: flex; gap: 28px; list-style: none; }
+  .nav-links a {
+    color: #94a3b8; text-decoration: none; font-size: 0.9rem; font-weight: 500;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: #e2e8f0; }
+
+  .page { position: relative; z-index: 1; }
+  .section { max-width: 880px; margin: 0 auto; padding: 0 24px; }
+
+  /* Hero — compact */
+  .hero { padding: 120px 0 48px; text-align: center; }
+  .hero-label {
+    display: inline-block; padding: 3px 14px; border-radius: 20px;
+    font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em;
+    background: rgba(99,102,241,0.12); color: #a5b4fc;
+    border: 1px solid rgba(99,102,241,0.18);
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800;
+    line-height: 1.25; letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #e0e7ff 0%, #c4b5fd 50%, #93c5fd 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+  }
+  .hero p {
+    font-size: 1rem; color: #8892b0; max-width: 480px; margin: 0 auto;
+  }
+
+  /* ==================== UPLOAD — Main action, prominent ==================== */
+  .upload-section {
+    max-width: 700px; margin: 0 auto 64px; padding: 0 24px;
+  }
+  .upload-main-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px; padding: 36px 32px 28px;
+    box-shadow: 0 8px 40px -12px rgba(0,0,0,0.3);
+  }
+  .upload-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px;
+  }
+  @media (max-width: 520px) { .upload-grid { grid-template-columns: 1fr; } }
+
+  .upload-card {
+    background: rgba(255,255,255,0.025);
+    border: 2px dashed rgba(255,255,255,0.10);
+    border-radius: 14px; padding: 36px 20px 28px;
+    text-align: center; cursor: pointer; position: relative;
+    transition: all 0.3s ease;
+  }
+  .upload-card:hover {
+    border-color: rgba(167,139,250,0.4);
+    background: rgba(167,139,250,0.04);
+  }
+  .upload-card.drag-over {
+    border-color: #a78bfa; border-style: solid;
+    background: rgba(167,139,250,0.10);
+    box-shadow: 0 0 0 6px rgba(167,139,250,0.06);
+  }
+  .upload-card.filled {
+    border-color: #34d399; border-style: solid;
+    background: rgba(52,211,153,0.05);
+  }
+  .upload-card input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .upload-card-icon { font-size: 2rem; margin-bottom: 10px; display: block; }
+  .upload-card-title { font-size: 0.95rem; font-weight: 700; color: #e2e8f0; margin-bottom: 4px; }
+  .upload-card-hint { font-size: 0.76rem; color: #64748b; margin-bottom: 6px; }
+  .upload-card-name { font-size: 0.82rem; color: #34d399; margin-top: 6px; word-break: break-all; }
+  .tag {
+    display: inline-block; padding: 1px 10px; border-radius: 10px;
+    font-size: 0.66rem; font-weight: 700; letter-spacing: 0.03em;
+  }
+  .tag-required { background: rgba(239,68,68,0.15); color: #f87171; }
+  .tag-optional { background: rgba(100,116,139,0.15); color: #94a3b8; }
+
+  .btn-row { text-align: center; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 14px 56px; border: none; border-radius: 12px;
+    font-size: 1.05rem; font-weight: 700; cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    box-shadow: 0 4px 28px rgba(99,102,241,0.35);
+  }
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 36px rgba(99,102,241,0.5);
+  }
+  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
+
+  .btn-download {
+    padding: 12px 28px; border-radius: 10px;
+    background: rgba(52,211,153,0.10); color: #34d399;
+    text-decoration: none; font-weight: 600; font-size: 0.9rem;
+    border: 1px solid rgba(52,211,153,0.2);
+    cursor: pointer; transition: all 0.25s;
+  }
+  .btn-download:hover {
+    background: rgba(52,211,153,0.18);
+    border-color: rgba(52,211,153,0.4);
+  }
+
+  /* Progress / Result / Error — inline below upload */
+  .feedback-panel { max-width: 700px; margin: 0 auto 64px; padding: 0 24px; }
+  .progress-panel {
+    border-radius: 16px; padding: 28px 32px; display: none;
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .progress-panel.visible { display: block; }
+  .progress-label { font-size: 0.9rem; color: #a5b4fc; margin-bottom: 14px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+  .progress-track { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+  .progress-fill {
+    height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, #6366f1, #a78bfa, #6366f1);
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+    width: 0%; transition: width 0.5s ease;
+  }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  .progress-pct { font-size: 0.8rem; color: #64748b; text-align: right; margin-top: 6px; }
+
+  .result-panel {
+    border-radius: 16px; padding: 32px; text-align: center; display: none;
+    background: rgba(52,211,153,0.04);
+    border: 1px solid rgba(52,211,153,0.15);
+  }
+  .result-panel.visible { display: block; }
+  .result-check { font-size: 2.5rem; margin-bottom: 8px; }
+  .result-title { font-size: 1.15rem; font-weight: 700; color: #34d399; margin-bottom: 18px; }
+  .result-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+  .error-panel {
+    border-radius: 16px; padding: 28px 32px; display: none;
+    background: rgba(239,68,68,0.04);
+    border: 1px solid rgba(239,68,68,0.15);
+  }
+  .error-panel.visible { display: block; }
+  .error-title { font-size: 0.95rem; color: #f87171; font-weight: 700; margin-bottom: 10px; }
+  .error-body {
+    font-size: 0.83rem; color: #fca5a5; white-space: pre-wrap; word-break: break-all;
+    line-height: 1.7; font-family: "SF Mono", "Fira Code", monospace;
+  }
+
+  /* ===== Below-the-fold sections ===== */
+  .section-heading { text-align: center; padding: 64px 0 32px; }
+  .section-heading h2 { font-size: 1.4rem; font-weight: 700; color: #e2e8f0; margin-bottom: 6px; }
+  .section-heading p  { font-size: 0.9rem; color: #64748b; }
+  .section-divider {
+    width: 48px; height: 3px;
+    background: linear-gradient(90deg, #6366f1, #a78bfa);
+    border-radius: 2px; margin: 0 auto 40px;
+  }
+
+  /* Features */
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding-bottom: 8px; }
+  @media (max-width: 680px) { .features { grid-template-columns: 1fr; } }
+  .feature-card {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px; padding: 28px 22px;
+    transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative; overflow: hidden;
+  }
+  .feature-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(167,139,250,0.4), transparent);
+    opacity: 0; transition: opacity 0.35s;
+  }
+  .feature-card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(167,139,250,0.2);
+    background: rgba(167,139,250,0.04);
+    box-shadow: 0 16px 48px -16px rgba(124,58,237,0.25), 0 0 0 1px rgba(167,139,250,0.08) inset;
+  }
+  .feature-card:hover::before { opacity: 1; }
+  .feature-icon { font-size: 1.8rem; margin-bottom: 14px; display: block; }
+  .feature-card h3 { font-size: 1rem; font-weight: 700; color: #e2e8f0; margin-bottom: 6px; }
+  .feature-card p  { font-size: 0.84rem; color: #8892b0; line-height: 1.7; }
+
+  /* Workflow */
+  .workflow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; padding-bottom: 8px; position: relative; }
+  @media (max-width: 680px) { .workflow { grid-template-columns: 1fr 1fr; } }
+  .workflow-step { text-align: center; padding: 20px 10px; position: relative; }
+  .workflow-step-num {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff; font-weight: 800; font-size: 1rem;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 12px;
+    box-shadow: 0 4px 16px rgba(99,102,241,0.3);
+  }
+  .workflow-step h4 { font-size: 0.88rem; font-weight: 700; color: #e2e8f0; margin-bottom: 2px; }
+  .workflow-step p  { font-size: 0.76rem; color: #64748b; line-height: 1.6; }
+  .workflow-connector {
+    position: absolute; top: 40px; right: -14px;
+    color: #6366f1; font-size: 1.1rem; font-weight: 700;
+  }
+  @media (max-width: 680px) { .workflow-connector { display: none; } }
+
+  /* Compare */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding-bottom: 8px; }
+  @media (max-width: 600px) { .compare-grid { grid-template-columns: 1fr; } }
+  .compare-card {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px; padding: 28px;
+  }
+  .compare-card:nth-child(1) { border-top: 2px solid #a78bfa; }
+  .compare-card:nth-child(2) { border-top: 2px solid #60a5fa; }
+  .compare-card-badge {
+    display: inline-block; padding: 3px 12px; border-radius: 10px;
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.03em; margin-bottom: 12px;
+  }
+  .badge-script { background: rgba(167,139,250,0.15); color: #c4b5fd; }
+  .badge-auto  { background: rgba(96,165,250,0.15); color: #93c5fd; }
+  .compare-card h4 { font-size: 1rem; font-weight: 700; color: #e2e8f0; margin-bottom: 10px; }
+  .compare-card li {
+    font-size: 0.83rem; color: #8892b0; line-height: 1.8;
+    padding-left: 18px; position: relative; list-style: none;
+  }
+  .compare-card li::before {
+    content: '→'; position: absolute; left: 0; color: #6366f1; font-weight: 700;
+  }
+
+  /* Tech */
+  .tech-grid { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; padding-bottom: 8px; }
+  .tech-badge {
+    padding: 6px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #94a3b8;
+  }
+
+  /* FAQ */
+  .faq-list { display: flex; flex-direction: column; gap: 10px; padding-bottom: 8px; }
+  .faq-item {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 12px; padding: 18px 24px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .faq-item:hover { border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); }
+  .faq-q { font-size: 0.9rem; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; }
+  .faq-a { font-size: 0.82rem; color: #8892b0; line-height: 1.7; }
+
+  .footer-bar {
+    border-top: 1px solid rgba(255,255,255,0.05);
+    text-align: center; padding: 32px 0; color: #475569; font-size: 0.8rem;
+  }
+  .spinner {
+    display: inline-block; width: 18px; height: 18px;
+    border: 2.5px solid rgba(255,255,255,0.2);
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="bg-ambient"></div>
+
+<nav class="navbar" id="navbar">
+  <div class="nav-brand">Zimu</div>
+  <ul class="nav-links">
+    <li><a href="#features">功能</a></li>
+    <li><a href="#how-it-works">流程</a></li>
+    <li><a href="#modes">双模式</a></li>
+    <li><a href="#faq">FAQ</a></li>
+  </ul>
+</nav>
+
+<div class="page">
+
+  <!-- Hero -->
+  <section class="hero section">
+    <div class="hero-label">AI-Powered Subtitle Engine</div>
+    <h1>智能视频字幕生成与合成</h1>
+    <p>上传视频，自动识别语音或对齐文稿 — 输出带字幕的视频文件</p>
+  </section>
+
+  <!-- ====== UPLOAD — 核心功能区，直接放在首屏 ====== -->
+  <section class="upload-section">
+    <div class="upload-main-card">
+      <div class="upload-grid">
+        <div class="upload-card" id="videoCard">
+          <span class="upload-card-icon">🎬</span>
+          <div class="upload-card-title">视频文件 <span class="tag tag-required">必填</span></div>
+          <div class="upload-card-hint">MP4 · MOV · AVI · MKV · WebM</div>
+          <div class="upload-card-name" id="videoName"></div>
+          <input type="file" id="videoInput" accept=".mp4,.mov,.avi,.mkv,.webm">
+        </div>
+        <div class="upload-card" id="docCard">
+          <span class="upload-card-icon">📄</span>
+          <div class="upload-card-title">文稿文件 <span class="tag tag-optional">可选</span></div>
+          <div class="upload-card-hint">.docx · .txt — 不传则自动语音识别</div>
+          <div class="upload-card-name" id="docName"></div>
+          <input type="file" id="docInput" accept=".docx,.txt">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="submitBtn" disabled>请先选择视频文件</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feedback panels — same width as upload -->
+  <section class="feedback-panel">
+    <div class="progress-panel" id="progressPanel">
+      <div class="progress-label"><span class="spinner"></span> <span id="progressStage">准备中...</span></div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-pct" id="progressPct">0%</div>
+    </div>
+    <div class="result-panel" id="resultPanel">
+      <div class="result-check">&#10004;</div>
+      <div class="result-title">处理完成</div>
+      <div class="result-actions">
+        <a class="btn btn-download" id="downloadVideo" href="#" download>下载带字幕视频</a>
+        <a class="btn btn-download" id="downloadSubtitle" href="#" download>下载字幕 (.srt)</a>
+      </div>
+    </div>
+    <div class="error-panel" id="errorPanel">
+      <div class="error-title">处理出错</div>
+      <div class="error-body" id="errorBody"></div>
+    </div>
+  </section>
+
+  <!-- ====== Below the fold ====== -->
+
+  <div class="section-heading" id="features"><h2>核心能力</h2><p>一个工具，覆盖两种字幕生产场景</p></div>
+  <div class="section-divider"></div>
+  <section class="section features">
+    <div class="feature-card">
+      <span class="feature-icon">🎙️</span>
+      <h3>自动语音识别</h3>
+      <p>基于 OpenAI Whisper 深度学习模型，自动提取视频音轨并生成逐字时间戳，中文识别准确率业界领先。</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">📝</span>
+      <h3>文稿强制对齐</h3>
+      <p>上传 .docx 或 .txt 文稿，系统通过 Smith-Waterman 对齐算法将文案精确映射到视频时间轴。</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">🎬</span>
+      <h3>智能断句 + 烧录</h3>
+      <p>智能识别英文单词边界与中文标点断句，杜绝"python"被截断。黑色字幕 + 白色描边，清晰可读。</p>
+    </div>
+  </section>
+
+  <div class="section-heading" id="how-it-works"><h2>处理流程</h2><p>从上传到输出，四个步骤一气呵成</p></div>
+  <div class="section-divider"></div>
+  <section class="section workflow">
+    <div class="workflow-step">
+      <div class="workflow-step-num">1</div>
+      <h4>提取音频</h4>
+      <p>FFmpeg 分离出 16kHz 单声道 WAV</p>
+      <span class="workflow-connector">→</span>
+    </div>
+    <div class="workflow-step">
+      <div class="workflow-step-num">2</div>
+      <h4>语音识别</h4>
+      <p>Whisper 转录，输出逐词时间戳</p>
+      <span class="workflow-connector">→</span>
+    </div>
+    <div class="workflow-step">
+      <div class="workflow-step-num">3</div>
+      <h4>字幕生成</h4>
+      <p>文稿对齐 / 直接转录 → 智能断句 → SRT</p>
+      <span class="workflow-connector">→</span>
+    </div>
+    <div class="workflow-step">
+      <div class="workflow-step-num">4</div>
+      <h4>视频合成</h4>
+      <p>FFmpeg 烧录硬字幕，黑字白边</p>
+    </div>
+  </section>
+
+  <div class="section-heading" id="modes"><h2>两种工作模式</h2><p>根据是否提供文稿，系统自动选择最佳策略</p></div>
+  <div class="section-divider"></div>
+  <section class="section compare-grid">
+    <div class="compare-card">
+      <span class="compare-card-badge badge-script">Case A · 有文稿</span>
+      <h4>文稿强制对齐模式</h4>
+      <ul>
+        <li>上传视频 + .docx / .txt 文稿</li>
+        <li>解析文稿为句子序列</li>
+        <li>Smith-Waterman 字符级对齐</li>
+        <li>字幕文字严格遵循原稿</li>
+        <li>适合：有文案的解说视频、课程录像</li>
+      </ul>
+    </div>
+    <div class="compare-card">
+      <span class="compare-card-badge badge-auto">Case B · 无文稿</span>
+      <h4>全自动语音识别模式</h4>
+      <ul>
+        <li>仅需上传视频文件</li>
+        <li>Whisper 直接转录语音内容</li>
+        <li>自动生成时间戳与字幕</li>
+        <li>无需任何手动编辑</li>
+        <li>适合：即兴录制、会议记录、vlog</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="section-heading"><h2>技术栈</h2><p>基于开源工具构建，可本地部署</p></div>
+  <div class="section-divider"></div>
+  <section class="section tech-grid">
+    <span class="tech-badge">Python FastAPI</span>
+    <span class="tech-badge">OpenAI Whisper</span>
+    <span class="tech-badge">FFmpeg</span>
+    <span class="tech-badge">Smith-Waterman</span>
+    <span class="tech-badge">python-docx</span>
+    <span class="tech-badge">SRT / ASS</span>
+    <span class="tech-badge">asyncio</span>
+    <span class="tech-badge">HTML5 + CSS3</span>
+  </section>
+
+  <div class="section-heading" id="faq"><h2>常见问题</h2></div>
+  <div class="section-divider"></div>
+  <section class="section faq-list">
+    <div class="faq-item">
+      <div class="faq-q">支持哪些语言？</div>
+      <div class="faq-a">默认配置为中文。修改 config.py 中 WHISPER_LANGUAGE 可切换至英文、日语等 99 种语言。中英混合场景也有良好表现。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">处理需要多长时间？</div>
+      <div class="faq-a">取决于视频长度和硬件。CPU 推理约为视频时长的 1~3 倍（tiny 最快，large 最准）。GPU (CUDA) 近乎实时。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">字幕样式可以自定义吗？</div>
+      <div class="faq-a">可以。修改 services/video_service.py 中 burn_subtitles 的 force_style 参数即可调整字体、大小、颜色、描边、位置等。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">支持哪些格式？大小限制？</div>
+      <div class="faq-a">视频：MP4 / MOV / AVI / MKV / WebM。文稿：.docx / .txt。默认上传限制 500MB，可在 config.py 中调整。</div>
+    </div>
+  </section>
+
+  <footer class="footer-bar">&copy; 2026 Zimu · Whisper + FFmpeg · 本地可部署<br><span style="color:#6366f1;">作者：我的token都去哪了</span></footer>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const videoInput  = $('videoInput');
+  const docInput    = $('docInput');
+  const videoCard   = $('videoCard');
+  const docCard     = $('docCard');
+  const videoName   = $('videoName');
+  const docName     = $('docName');
+  const submitBtn   = $('submitBtn');
+  const progressPanel = $('progressPanel');
+  const progressStage = $('progressStage');
+  const progressFill  = $('progressFill');
+  const progressPct   = $('progressPct');
+  const resultPanel   = $('resultPanel');
+  const downloadVideo = $('downloadVideo');
+  const downloadSub   = $('downloadSubtitle');
+  const errorPanel    = $('errorPanel');
+  const errorBody     = $('errorBody');
+  const navbar        = $('navbar');
+
+  const STAGE_LABELS = {
+    extracting_audio: '正在提取音频...',
+    transcribing:     '正在进行语音识别...',
+    aligning:         '正在对齐文稿与音频...',
+    rendering:        '正在烧录字幕到视频...',
+  };
+
+  window.addEventListener('scroll', () => navbar.classList.toggle('scrolled', window.scrollY > 20));
+
+  function updateBtn() {
+    const ok = !!videoInput.files[0];
+    submitBtn.disabled = !ok;
+    submitBtn.textContent = ok ? '开始生成字幕' : '请先选择视频文件';
+  }
+
+  videoInput.addEventListener('change', () => {
+    const f = videoInput.files[0];
+    videoName.textContent = f ? f.name : '';
+    videoCard.classList.toggle('filled', !!f);
+    updateBtn();
+  });
+
+  docInput.addEventListener('change', () => {
+    const f = docInput.files[0];
+    docName.textContent = f ? f.name : '';
+    docCard.classList.toggle('filled', !!f);
+  });
+
+  [videoCard, docCard].forEach(card => {
+    card.addEventListener('dragover', e => { e.preventDefault(); card.classList.add('drag-over'); });
+    card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+    card.addEventListener('drop', e => {
+      e.preventDefault();
+      card.classList.remove('drag-over');
+      const inp = card.querySelector('input[type="file"]');
+      if (e.dataTransfer.files.length) { inp.files = e.dataTransfer.files; inp.dispatchEvent(new Event('change')); }
+    });
+  });
+
+  async function pollTask(taskId) {
+    while (true) {
+      try {
+        const r = await fetch(`/api/task/${taskId}`);
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const d = await r.json();
+        progressFill.style.width = d.progress + '%';
+        progressPct.textContent = Math.round(d.progress) + '%';
+        if (d.stage && STAGE_LABELS[d.stage]) progressStage.textContent = STAGE_LABELS[d.stage];
+
+        if (d.status === 'completed') {
+          progressPanel.classList.remove('visible');
+          resultPanel.classList.add('visible');
+          downloadVideo.href = d.download_url; downloadSub.href = d.subtitle_url;
+          submitBtn.disabled = false; submitBtn.innerHTML = '开始生成字幕';
+          return;
+        }
+        if (d.status === 'error') {
+          progressPanel.classList.remove('visible');
+          errorPanel.classList.add('visible');
+          errorBody.textContent = d.error_message || '未知错误';
+          submitBtn.disabled = false; submitBtn.innerHTML = '开始生成字幕';
+          return;
+        }
+        await new Promise(r => setTimeout(r, 1000));
+      } catch (err) {
+        errorPanel.classList.add('visible');
+        errorBody.textContent = '状态查询失败: ' + err.message;
+        submitBtn.disabled = false; submitBtn.innerHTML = '开始生成字幕';
+        return;
+      }
+    }
+  }
+
+  submitBtn.addEventListener('click', async () => {
+    const vf = videoInput.files[0];
+    if (!vf) return;
+    resultPanel.classList.remove('visible');
+    errorPanel.classList.remove('visible');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span> 处理中...';
+    progressPanel.classList.add('visible');
+    progressStage.textContent = '正在上传文件...';
+    progressFill.style.width = '0%'; progressPct.textContent = '0%';
+
+    const fd = new FormData();
+    fd.append('video', vf);
+    if (docInput.files[0]) fd.append('doc', docInput.files[0]);
+
+    try {
+      const r = await fetch('/api/upload', { method: 'POST', body: fd });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.detail || `Upload failed`); }
+      const { task_id } = await r.json();
+      await pollTask(task_id);
+    } catch (err) {
+      progressPanel.classList.remove('visible');
+      errorPanel.classList.add('visible');
+      errorBody.textContent = err.message;
+      submitBtn.disabled = false; submitBtn.innerHTML = '开始生成字幕';
+    }
+  });
+</script>
+</body>
+</html>

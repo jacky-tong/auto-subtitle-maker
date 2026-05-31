@@ -1,0 +1,34 @@
+# Storage
+storage/uploads/*
+storage/outputs/*
+storage/temp/*
+!storage/uploads/.gitkeep
+!storage/outputs/.gitkeep
+!storage/temp/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+
+# Model cache (large files)
+*.pt
+*.bin
+*.safetensors
