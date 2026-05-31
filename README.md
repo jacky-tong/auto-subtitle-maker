@@ -73,8 +73,8 @@ sudo apt install ffmpeg
 
 ```bash
 # 1. 克隆项目
-git clone https://github.com/jacky-tong/zimu.git
-cd zimu
+git clone https://github.com/jacky-tong/auto-subtitle-maker.git
+cd auto-subtitle-maker
 
 # 2. 安装依赖
 pip install -r requirements.txt
@@ -172,7 +172,7 @@ python -m uvicorn main:app --host 0.0.0.0 --port 8000
 ## Project Structure 项目结构
 
 ```
-zimu/
+auto-subtitle-maker/
 ├── main.py                  # FastAPI 入口
 ├── config.py                # 全局配置
 ├── requirements.txt         # Python 依赖
