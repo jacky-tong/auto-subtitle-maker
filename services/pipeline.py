@@ -16,6 +16,9 @@ from config import UPLOAD_DIR, OUTPUT_DIR, TEMP_DIR
 
 
 class ProcessingPipeline:
+    # Delimiter used to join sentences for batch translation
+    _SENT_DELIM = " ||| "
+
     def __init__(
         self,
         whisper_svc: WhisperService,
@@ -26,6 +29,60 @@ class ProcessingPipeline:
         self.aligner = aligner
         self.video = video_svc
         self.translator = TranslationService()
+
+    async def _add_bilingual(
+        self, entries: list[SubtitleEntry]
+    ) -> list[SubtitleEntry]:
+        """Translate entries sentence-by-sentence for natural bilingual display.
+
+        Strategy:
+        1. Collect all Chinese text, split into complete sentences by punctuation
+        2. Map each sentence back to its subtitle entries
+        3. Translate each complete sentence → one English sentence
+        4. Assign the English sentence to all entries of that sentence
+
+        Result: one Chinese sentence maps to exactly one English sentence,
+        displayed as two lines (Chinese top, English bottom).
+        """
+        # 1. Join all texts, split into complete sentences
+        full_text = "".join(e.text for e in entries)
+        from utils.text_utils import split_sentences
+        sentences = split_sentences(full_text)
+        if not sentences:
+            return entries
+
+        # 2. Map each entry → sentence index
+        entry_sent_idx: list[int] = []
+        char_ptr = 0
+        sent_idx = 0
+        sent_start = 0
+        for entry in entries:
+            entry_len = len(entry.text)
+            # Find which sentence contains the midpoint of this entry
+            mid = char_ptr + entry_len // 2
+            while sent_idx < len(sentences) - 1:
+                next_start = sent_start + len(sentences[sent_idx])
+                if mid < next_start:
+                    break
+                sent_start = next_start
+                sent_idx += 1
+            entry_sent_idx.append(sent_idx)
+            char_ptr += entry_len
+
+        # 3. Batch translate all complete sentences (fast)
+        translated = await self.translator.translate_batch_async(sentences)
+
+        # 4. Build sentence-level English text, assign to entries
+        sent_en_map: dict[int, str] = {}
+        for i, en in enumerate(translated):
+            if en.strip():
+                sent_en_map[i] = en.strip()
+
+        for i, entry in enumerate(entries):
+            sidx = entry_sent_idx[i]
+            entry.text_en = sent_en_map.get(sidx, "")
+
+        return entries
 
     async def run(self, task_info: TaskInfo, task_store: TaskStore) -> None:
         task_id = task_info.task_id
@@ -69,10 +126,7 @@ class ProcessingPipeline:
             # Stage 3.5: Translate if bilingual
             if task_info.bilingual:
                 task_store.update(task_id, stage=ProcessingStage.translating, progress=50.0)
-                texts = [e.text for e in entries]
-                translated = await self.translator.translate_batch_async(texts)
-                for entry, en_text in zip(entries, translated):
-                    entry.text_en = en_text.strip() if en_text else ""
+                entries = await self._add_bilingual(entries)
 
             # Stage 4: Build SRT
             task_store.update(task_id, progress=65.0)
