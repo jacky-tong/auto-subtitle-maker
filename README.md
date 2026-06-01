@@ -23,7 +23,7 @@
 <td width="50%">
 
 ### 🎙️ 自动语音识别 (Case B)
-无需文稿，上传视频即可。基于 **OpenAI Whisper** 深度学习模型，自动提取音轨并生成逐字时间戳。中文识别准确率业界领先，同时支持中英混合场景。
+无需文稿，上传视频即可。基于 **OpenAI Whisper** 深度学习模型，自动提取音轨并生成逐字时间戳。中文识别准确率业界领先，支持中英混合场景。**支持 GPU 加速**（CUDA），勾选即可大幅提升推理速度。
 
 </td>
 <td width="50%">
@@ -133,7 +133,7 @@ python -m uvicorn main:app --host 0.0.0.0 --port 8000
 | 组件 | 技术 | 用途 |
 |------|------|------|
 | 后端框架 | **FastAPI** | HTTP API + 异步任务 |
-| 语音识别 | **OpenAI Whisper** | 音频转录 + 逐词时间戳 |
+| 语音识别 | **OpenAI Whisper** | 音频转录 + 逐词时间戳 + GPU 加速 |
 | 强制对齐 | **Smith-Waterman** | 文稿 → 时间轴映射 |
 | 视频处理 | **FFmpeg** | 音频提取 + 字幕烧录 |
 | 文档解析 | **python-docx** | .docx / .txt 读取 |
@@ -149,7 +149,7 @@ python -m uvicorn main:app --host 0.0.0.0 --port 8000
 |------|--------|------|
 | `WHISPER_MODEL_SIZE` | `medium` | 模型大小：tiny / base / small / medium / large-v3 |
 | `WHISPER_LANGUAGE` | `zh` | 识别语言（99 种可选） |
-| `WHISPER_DEVICE` | `cpu` | 推理设备：cpu / cuda |
+| `WHISPER_DEVICE` | `cpu` | 默认推理设备：cpu / cuda（可在页面中切换 GPU 加速） |
 | `MAX_UPLOAD_SIZE_MB` | `500` | 上传大小上限 |
 | `CLEANUP_AGE_HOURS` | `6` | 生成文件过期时间 |
 
