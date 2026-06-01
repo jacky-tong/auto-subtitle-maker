@@ -384,6 +384,13 @@
       </div>
       <div class="options-row">
         <div class="option-group">
+          <span class="option-label">GPU 加速</span>
+          <label class="toggle">
+            <input type="checkbox" id="gpuToggle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="option-group">
           <span class="option-label">中英双语</span>
           <label class="toggle">
             <input type="checkbox" id="bilingualToggle">
@@ -556,6 +563,7 @@
   const errorPanel    = $('errorPanel');
   const errorBody     = $('errorBody');
   const navbar        = $('navbar');
+  const gpuToggle    = $('gpuToggle');
   const bilingualToggle = $('bilingualToggle');
   const colorPicker   = $('colorPicker');
   const colorHex      = $('colorHex');
@@ -653,6 +661,7 @@
     if (docInput.files[0]) fd.append('doc', docInput.files[0]);
     fd.append('bilingual', bilingualToggle.checked ? 'true' : 'false');
     fd.append('subtitle_color', colorPicker.value);
+    fd.append('use_gpu', gpuToggle.checked ? 'true' : 'false');
 
     try {
       const r = await fetch('/api/upload', { method: 'POST', body: fd });

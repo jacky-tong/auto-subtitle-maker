@@ -40,6 +40,7 @@ async def upload(
     doc: Optional[UploadFile] = File(default=None),
     bilingual: bool = Form(default=False),
     subtitle_color: str = Form(default="#000000"),
+    use_gpu: bool = Form(default=False),
     task_store: TaskStore = Depends(get_task_store),
     pipeline_svc: ProcessingPipeline = Depends(get_pipeline),
 ):
@@ -91,6 +92,7 @@ async def upload(
         has_doc=has_doc,
         bilingual=bilingual,
         subtitle_color=subtitle_color,
+        use_gpu=use_gpu,
         video_path=video_path,
         doc_path=doc_path,
     )

@@ -30,6 +30,7 @@ class TaskInfo:
     has_doc: bool = False
     bilingual: bool = False
     subtitle_color: str = "#000000"
+    use_gpu: bool = False
     error_message: Optional[str] = None
     download_url: Optional[str] = None
     subtitle_url: Optional[str] = None

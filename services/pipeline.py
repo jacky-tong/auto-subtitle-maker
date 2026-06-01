@@ -38,7 +38,9 @@ class ProcessingPipeline:
 
             # Stage 2: Transcribe with Whisper
             task_store.update(task_id, stage=ProcessingStage.transcribing, progress=15.0)
-            segments = await asyncio.to_thread(self.whisper.transcribe, audio_path)
+            segments = await asyncio.to_thread(
+                self.whisper.transcribe, audio_path, task_info.use_gpu
+            )
 
             if not segments:
                 raise RuntimeError("Whisper returned no speech segments. The video may have no audio track.")
