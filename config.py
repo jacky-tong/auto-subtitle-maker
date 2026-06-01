@@ -14,8 +14,35 @@ WHISPER_MODEL_SIZE: str = "tiny"
 WHISPER_DEVICE: str = "cpu"
 WHISPER_LANGUAGE: str = "zh"
 
-FFMPEG_PATH: str = "ffmpeg"
-FFPROBE_PATH: str = "ffprobe"
+import shutil
+
+def _find_ffmpeg() -> str:
+    """Auto-detect ffmpeg in PATH or common install locations."""
+    path = shutil.which("ffmpeg")
+    if path:
+        return path
+    candidates = [
+        Path.home() / "miniconda3" / "Library" / "bin" / "ffmpeg.exe",
+        Path.home() / "miniconda3" / "Scripts" / "ffmpeg.exe",
+        Path("C:/ffmpeg/bin/ffmpeg.exe"),
+    ]
+    for c in candidates:
+        if c.exists():
+            return str(c)
+    return "ffmpeg"
+
+def _find_ffprobe() -> str:
+    path = shutil.which("ffprobe")
+    if path:
+        return path
+    ff_dir = Path(_find_ffmpeg()).parent
+    probe = ff_dir / "ffprobe.exe"
+    if probe.exists():
+        return str(probe)
+    return "ffprobe"
+
+FFMPEG_PATH: str = _find_ffmpeg()
+FFPROBE_PATH: str = _find_ffprobe()
 
 MAX_UPLOAD_SIZE_MB: int = 500
 CLEANUP_AGE_HOURS: int = 6
