@@ -10,6 +10,7 @@ from services.aligner import ForcedAligner, AlignedSentence
 from services.subtitle_service import SubtitleService, SubtitleEntry
 from services.video_service import VideoService
 from services.doc_parser import DocParser
+from services.translation_service import TranslationService
 from services.file_manager import FileManager
 from config import UPLOAD_DIR, OUTPUT_DIR, TEMP_DIR
 
@@ -24,6 +25,7 @@ class ProcessingPipeline:
         self.whisper = whisper_svc
         self.aligner = aligner
         self.video = video_svc
+        self.translator = TranslationService()
 
     async def run(self, task_info: TaskInfo, task_store: TaskStore) -> None:
         task_id = task_info.task_id
@@ -44,7 +46,7 @@ class ProcessingPipeline:
             # Stage 3: Branch Case A (doc) or Case B (no doc)
             entries: list[SubtitleEntry]
             if task_info.has_doc and task_info.doc_path:
-                task_store.update(task_id, stage=ProcessingStage.aligning, progress=50.0)
+                task_store.update(task_id, stage=ProcessingStage.aligning, progress=40.0)
                 doc_sentences = DocParser.parse(task_info.doc_path)
                 aligned = self.aligner.align(doc_sentences, segments)
                 entries = [
@@ -52,8 +54,7 @@ class ProcessingPipeline:
                     for a in aligned
                 ]
             else:
-                # Case B: Use Whisper output directly
-                task_store.update(task_id, stage=ProcessingStage.aligning, progress=50.0)
+                task_store.update(task_id, progress=40.0)
                 entries = []
                 for seg in segments:
                     if seg.text.strip():
@@ -63,9 +64,17 @@ class ProcessingPipeline:
                             end=seg.end,
                         ))
 
+            # Stage 3.5: Translate if bilingual
+            if task_info.bilingual:
+                task_store.update(task_id, stage=ProcessingStage.translating, progress=50.0)
+                texts = [e.text for e in entries]
+                translated = await self.translator.translate_batch_async(texts)
+                for entry, en_text in zip(entries, translated):
+                    entry.text_en = en_text.strip() if en_text else ""
+
             # Stage 4: Build SRT
             task_store.update(task_id, progress=65.0)
-            srt_content = SubtitleService.build_srt(entries)
+            srt_content = SubtitleService.build_srt(entries, bilingual=task_info.bilingual)
             srt_path = str(TEMP_DIR / f"{task_id}_subtitle.srt")
             task_info.srt_path = srt_path
             with open(srt_path, "w", encoding="utf-8") as f:
@@ -76,7 +85,8 @@ class ProcessingPipeline:
             output_path = str(OUTPUT_DIR / f"{task_id}_subtitled.mp4")
             task_info.output_video_path = output_path
             await self.video.burn_subtitles(
-                task_info.video_path, srt_path, output_path
+                task_info.video_path, srt_path, output_path,
+                subtitle_color=task_info.subtitle_color,
             )
 
             # Done

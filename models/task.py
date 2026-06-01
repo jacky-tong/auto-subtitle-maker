@@ -15,6 +15,7 @@ class TaskStatus(str, Enum):
 class ProcessingStage(str, Enum):
     extracting_audio = "extracting_audio"
     transcribing = "transcribing"
+    translating = "translating"
     aligning = "aligning"
     rendering = "rendering"
 
@@ -27,6 +28,8 @@ class TaskInfo:
     progress: float = 0.0
     upload_filename: str = ""
     has_doc: bool = False
+    bilingual: bool = False
+    subtitle_color: str = "#000000"
     error_message: Optional[str] = None
     download_url: Optional[str] = None
     subtitle_url: Optional[str] = None

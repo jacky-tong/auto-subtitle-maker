@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import subprocess
-import re
 import asyncio
 from pathlib import Path
 
@@ -27,35 +28,29 @@ class VideoService:
         if result.returncode != 0:
             raise RuntimeError(f"Audio extraction failed: {result.stderr}")
 
-    def get_duration(self, video_path: str) -> float:
-        """Get video duration in seconds using ffprobe."""
-        cmd = [
-            self._ffprobe,
-            "-v", "error",
-            "-show_entries", "format=duration",
-            "-of", "default=noprint_wrappers=1:nokey=1",
-            video_path,
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            raise RuntimeError(f"Failed to get video duration: {result.stderr}")
-        return float(result.stdout.strip())
+    @staticmethod
+    def _hex_to_ass(hex_color: str) -> str:
+        """Convert #RRGGBB to ASS &HBBGGRR00 format."""
+        c = hex_color.lstrip("#")
+        if len(c) == 6:
+            r, g, b = c[0:2], c[2:4], c[4:6]
+            return f"&H00{b}{g}{r}00"
+        return "&H00000000"  # default black
 
     async def burn_subtitles(
         self,
         video_path: str,
         srt_path: str,
         output_path: str,
+        subtitle_color: str = "#000000",
     ) -> None:
-        """Burn subtitles into video with black text and white outline.
+        """Burn subtitles into video with configurable text color and white outline."""
+        primary = self._hex_to_ass(subtitle_color)
 
-        Uses ASS style via FFmpeg subtitles filter for reliable cross-platform rendering.
-        """
-        # Use ASS style override for black text + white outline
         style = (
             "FontName=Arial,"
             "FontSize=18,"
-            "PrimaryColour=&H00000000,"
+            f"PrimaryColour={primary},"
             "OutlineColour=&H00FFFFFF,"
             "Outline=2,"
             "BorderStyle=1,"
@@ -63,7 +58,6 @@ class VideoService:
             "Alignment=2"
         )
 
-        # FFmpeg subtitles filter: escape Windows paths and use force_style
         escaped_srt = str(Path(srt_path).as_posix()).replace(":", "\\:")
         vf = f"subtitles='{escaped_srt}':force_style='{style}'"
 

@@ -3,7 +3,7 @@ import uuid
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
+from fastapi import APIRouter, File, UploadFile, HTTPException, Form, Depends
 from fastapi.responses import FileResponse
 
 from models.task import TaskInfo, TaskStatus, TaskStore
@@ -38,6 +38,8 @@ def get_file_manager() -> FileManager:
 async def upload(
     video: UploadFile = File(...),
     doc: Optional[UploadFile] = File(default=None),
+    bilingual: bool = Form(default=False),
+    subtitle_color: str = Form(default="#000000"),
     task_store: TaskStore = Depends(get_task_store),
     pipeline_svc: ProcessingPipeline = Depends(get_pipeline),
 ):
@@ -87,6 +89,8 @@ async def upload(
         task_id=task_id,
         upload_filename=video.filename or "unknown",
         has_doc=has_doc,
+        bilingual=bilingual,
+        subtitle_color=subtitle_color,
         video_path=video_path,
         doc_path=doc_path,
     )
