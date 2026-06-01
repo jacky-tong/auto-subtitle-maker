@@ -7,14 +7,46 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; }
+
+  /* ===== Design tokens ===== */
+  :root {
+    --color-bg:       #0a0a1a;
+    --color-surface:  rgba(255,255,255,0.03);
+    --color-border:   rgba(255,255,255,0.08);
+    --color-text:     #ccd6f6;
+    --color-muted:    #8892b0;
+    --color-dim:      #64748b;
+    --color-primary:  #818cf8;
+    --color-accent:   #a78bfa;
+    --color-success:  #34d399;
+    --color-error:    #f87171;
+    --color-badge-bg: rgba(99,102,241,0.12);
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in:  cubic-bezier(0.4, 0, 1, 1);
+  }
+
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
-    background: #0a0a1a;
-    color: #ccd6f6;
+    background: var(--color-bg);
+    color: var(--color-text);
     min-height: 100vh;
     line-height: 1.6;
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
   }
+
+  /* Skip link */
+  .skip-link {
+    position: absolute; top: -100px; left: 16px; z-index: 200;
+    padding: 12px 20px; border-radius: var(--radius-sm);
+    background: var(--color-primary); color: #fff; text-decoration: none; font-weight: 600;
+  }
+  .skip-link:focus { top: 16px; }
+
+  /* Ambient background */
   .bg-ambient {
     position: fixed; inset: 0; z-index: 0; pointer-events: none;
     background:
@@ -23,12 +55,19 @@
       radial-gradient(ellipse 50% 50% at 50% 80%, rgba(59,130,246,0.08) 0%, transparent 50%);
   }
 
-  /* Navbar */
+  /* === Focus ring === */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* ===== Navbar — Glassmorphism ===== */
   .navbar {
     position: fixed; top: 0; left: 0; right: 0; z-index: 100;
     padding: 16px 32px;
     display: flex; align-items: center; justify-content: space-between;
-    transition: all 0.35s ease;
+    transition: background 0.35s var(--ease-out), box-shadow 0.35s var(--ease-out);
   }
   .navbar.scrolled {
     background: rgba(10,10,30,0.65);
@@ -53,12 +92,12 @@
   .page { position: relative; z-index: 1; }
   .section { max-width: 880px; margin: 0 auto; padding: 0 24px; }
 
-  /* Hero — compact */
+  /* ===== Hero ===== */
   .hero { padding: 120px 0 48px; text-align: center; }
   .hero-label {
     display: inline-block; padding: 3px 14px; border-radius: 20px;
     font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em;
-    background: rgba(99,102,241,0.12); color: #a5b4fc;
+    background: var(--color-badge-bg); color: #a5b4fc;
     border: 1px solid rgba(99,102,241,0.18);
     margin-bottom: 20px;
   }
@@ -70,18 +109,19 @@
     background-clip: text;
     margin-bottom: 12px;
   }
-  .hero p {
-    font-size: 1rem; color: #8892b0; max-width: 480px; margin: 0 auto;
-  }
+  .hero p { font-size: 1rem; color: var(--color-muted); max-width: 480px; margin: 0 auto; }
 
-  /* ==================== UPLOAD — Main action, prominent ==================== */
-  .upload-section {
-    max-width: 700px; margin: 0 auto 64px; padding: 0 24px;
-  }
+  /* ===== SVG icons ===== */
+  .icon { display: inline-block; width: 1em; height: 1em; vertical-align: -0.125em; flex-shrink: 0; }
+  .icon-lg { font-size: 2rem; margin-bottom: 10px; }
+  .icon-md { font-size: 1.5rem; }
+
+  /* ===== UPLOAD ===== */
+  .upload-section { max-width: 700px; margin: 0 auto 64px; padding: 0 24px; }
   .upload-main-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 20px; padding: 36px 32px 28px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg); padding: 36px 32px 28px;
     box-shadow: 0 8px 40px -12px rgba(0,0,0,0.3);
   }
   .upload-grid {
@@ -92,74 +132,86 @@
   .upload-card {
     background: rgba(255,255,255,0.025);
     border: 2px dashed rgba(255,255,255,0.10);
-    border-radius: 14px; padding: 36px 20px 28px;
+    border-radius: var(--radius-md); padding: 36px 20px 28px;
     text-align: center; cursor: pointer; position: relative;
-    transition: all 0.3s ease;
+    transition: border-color 0.2s var(--ease-out), background 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
   }
   .upload-card:hover {
     border-color: rgba(167,139,250,0.4);
     background: rgba(167,139,250,0.04);
   }
   .upload-card.drag-over {
-    border-color: #a78bfa; border-style: solid;
+    border-color: var(--color-accent); border-style: solid;
     background: rgba(167,139,250,0.10);
     box-shadow: 0 0 0 6px rgba(167,139,250,0.06);
   }
   .upload-card.filled {
-    border-color: #34d399; border-style: solid;
+    border-color: var(--color-success); border-style: solid;
     background: rgba(52,211,153,0.05);
   }
-  .upload-card input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-  .upload-card-icon { font-size: 2rem; margin-bottom: 10px; display: block; }
+  .upload-card input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    font-size: 0; /* hide native text */
+  }
+  .upload-card-icon { font-size: 2rem; margin-bottom: 10px; display: block; color: var(--color-muted); }
+  .upload-card.filled .upload-card-icon { color: var(--color-success); }
   .upload-card-title { font-size: 0.95rem; font-weight: 700; color: #e2e8f0; margin-bottom: 4px; }
-  .upload-card-hint { font-size: 0.76rem; color: #64748b; margin-bottom: 6px; }
-  .upload-card-name { font-size: 0.82rem; color: #34d399; margin-top: 6px; word-break: break-all; }
+  .upload-card-hint { font-size: 0.76rem; color: var(--color-dim); margin-bottom: 6px; }
+  .upload-card-name { font-size: 0.82rem; color: var(--color-success); margin-top: 6px; word-break: break-all; }
   .tag {
     display: inline-block; padding: 1px 10px; border-radius: 10px;
     font-size: 0.66rem; font-weight: 700; letter-spacing: 0.03em;
   }
-  .tag-required { background: rgba(239,68,68,0.15); color: #f87171; }
+  .tag-required { background: rgba(239,68,68,0.15); color: var(--color-error); }
   .tag-optional { background: rgba(100,116,139,0.15); color: #94a3b8; }
 
   .btn-row { text-align: center; }
 
   /* Options row */
   .options-row {
-    display: flex; gap: 28px; justify-content: center; align-items: center;
+    display: flex; gap: 24px; justify-content: center; align-items: center;
     flex-wrap: wrap; margin-bottom: 24px; padding: 0 4px;
   }
   .option-group { display: flex; align-items: center; gap: 10px; }
   .option-label { font-size: 0.82rem; color: #94a3b8; font-weight: 500; white-space: nowrap; }
-  /* Toggle switch */
-  .toggle { position: relative; display: inline-block; width: 44px; height: 24px; }
-  .toggle input { opacity: 0; width: 0; height: 0; }
+
+  /* Toggle switch — 44px touch target */
+  .toggle { position: relative; display: inline-flex; align-items: center; width: 44px; height: 28px; cursor: pointer; }
+  .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
   .toggle-slider {
-    position: absolute; inset: 0; cursor: pointer;
-    background: rgba(255,255,255,0.1);
-    border-radius: 24px; transition: 0.25s;
+    display: inline-block; width: 44px; height: 28px;
+    background: rgba(255,255,255,0.1); border-radius: 28px;
+    transition: background 0.2s var(--ease-out);
   }
   .toggle-slider::before {
-    content: ''; position: absolute; height: 18px; width: 18px;
-    left: 3px; bottom: 3px; background: #fff; border-radius: 50%;
-    transition: 0.25s;
+    content: ''; position: absolute; height: 22px; width: 22px;
+    left: 3px; top: 3px; background: #fff; border-radius: 50%;
+    transition: transform 0.2s var(--ease-out);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
   }
   .toggle input:checked + .toggle-slider { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
-  .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(16px); }
+  .toggle input:focus-visible + .toggle-slider { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
   /* Color picker */
   .color-input {
-    -webkit-appearance: none; -moz-appearance: none; appearance: none;
+    -webkit-appearance: none; appearance: none;
     width: 36px; height: 36px; border: 2px solid rgba(255,255,255,0.15);
-    border-radius: 8px; cursor: pointer; background: transparent; padding: 2px;
+    border-radius: var(--radius-sm); cursor: pointer; background: transparent; padding: 2px;
   }
   .color-input::-webkit-color-swatch-wrapper { padding: 0; }
   .color-input::-webkit-color-swatch { border: none; border-radius: 5px; }
-  .color-hex { font-size: 0.78rem; color: #64748b; font-family: monospace; }
+  .color-hex { font-size: 0.78rem; color: var(--color-dim); font-family: "SF Mono", "Fira Code", monospace; }
+
+  /* ===== Buttons ===== */
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 10px;
     padding: 14px 56px; border: none; border-radius: 12px;
     font-size: 1.05rem; font-weight: 700; cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transition: transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out), opacity 0.2s;
+    user-select: none; -webkit-tap-highlight-color: transparent;
   }
+  .btn:active:not(:disabled) { transform: scale(0.97); }
   .btn-primary {
     background: linear-gradient(135deg, #6366f1, #8b5cf6);
     color: #fff;
@@ -169,26 +221,27 @@
     transform: translateY(-2px);
     box-shadow: 0 8px 36px rgba(99,102,241,0.5);
   }
-  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
+  .btn-primary:active:not(:disabled) { transform: scale(0.97) translateY(0); }
+  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; transform: none; }
 
   .btn-download {
     padding: 12px 28px; border-radius: 10px;
-    background: rgba(52,211,153,0.10); color: #34d399;
+    background: rgba(52,211,153,0.10); color: var(--color-success);
     text-decoration: none; font-weight: 600; font-size: 0.9rem;
     border: 1px solid rgba(52,211,153,0.2);
-    cursor: pointer; transition: all 0.25s;
+    cursor: pointer; transition: background 0.2s, border-color 0.2s;
   }
+  .btn-download:active { transform: scale(0.96); }
   .btn-download:hover {
     background: rgba(52,211,153,0.18);
     border-color: rgba(52,211,153,0.4);
   }
 
-  /* Progress / Result / Error — inline below upload */
+  /* ===== Feedback panels ===== */
   .feedback-panel { max-width: 700px; margin: 0 auto 64px; padding: 0 24px; }
   .progress-panel {
     border-radius: 16px; padding: 28px 32px; display: none;
-    background: rgba(255,255,255,0.025);
-    border: 1px solid rgba(255,255,255,0.06);
+    background: var(--color-surface); border: 1px solid var(--color-border);
   }
   .progress-panel.visible { display: block; }
   .progress-label { font-size: 0.9rem; color: #a5b4fc; margin-bottom: 14px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
@@ -198,40 +251,38 @@
     background: linear-gradient(90deg, #6366f1, #a78bfa, #6366f1);
     background-size: 200% 100%;
     animation: shimmer 2s linear infinite;
-    width: 0%; transition: width 0.5s ease;
+    width: 0%; transition: width 0.5s var(--ease-out);
   }
   @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-  .progress-pct { font-size: 0.8rem; color: #64748b; text-align: right; margin-top: 6px; }
+  .progress-pct { font-size: 0.8rem; color: var(--color-dim); text-align: right; margin-top: 6px; }
 
   .result-panel {
     border-radius: 16px; padding: 32px; text-align: center; display: none;
-    background: rgba(52,211,153,0.04);
-    border: 1px solid rgba(52,211,153,0.15);
+    background: rgba(52,211,153,0.04); border: 1px solid rgba(52,211,153,0.15);
   }
   .result-panel.visible { display: block; }
-  .result-check { font-size: 2.5rem; margin-bottom: 8px; }
-  .result-title { font-size: 1.15rem; font-weight: 700; color: #34d399; margin-bottom: 18px; }
+  .result-icon { display: block; margin: 0 auto 12px; color: var(--color-success); }
+  .result-title { font-size: 1.15rem; font-weight: 700; color: var(--color-success); margin-bottom: 18px; }
   .result-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 
   .error-panel {
     border-radius: 16px; padding: 28px 32px; display: none;
-    background: rgba(239,68,68,0.04);
-    border: 1px solid rgba(239,68,68,0.15);
+    background: rgba(239,68,68,0.04); border: 1px solid rgba(239,68,68,0.15);
   }
   .error-panel.visible { display: block; }
-  .error-title { font-size: 0.95rem; color: #f87171; font-weight: 700; margin-bottom: 10px; }
+  .error-title { font-size: 0.95rem; color: var(--color-error); font-weight: 700; margin-bottom: 10px; }
   .error-body {
     font-size: 0.83rem; color: #fca5a5; white-space: pre-wrap; word-break: break-all;
     line-height: 1.7; font-family: "SF Mono", "Fira Code", monospace;
   }
 
-  /* ===== Below-the-fold sections ===== */
+  /* ===== Below the fold ===== */
   .section-heading { text-align: center; padding: 64px 0 32px; }
   .section-heading h2 { font-size: 1.4rem; font-weight: 700; color: #e2e8f0; margin-bottom: 6px; }
-  .section-heading p  { font-size: 0.9rem; color: #64748b; }
+  .section-heading p  { font-size: 0.9rem; color: var(--color-dim); }
   .section-divider {
     width: 48px; height: 3px;
-    background: linear-gradient(90deg, #6366f1, #a78bfa);
+    background: linear-gradient(90deg, #6366f1, var(--color-accent));
     border-radius: 2px; margin: 0 auto 40px;
   }
 
@@ -239,16 +290,16 @@
   .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding-bottom: 8px; }
   @media (max-width: 680px) { .features { grid-template-columns: 1fr; } }
   .feature-card {
-    background: rgba(255,255,255,0.025);
-    border: 1px solid rgba(255,255,255,0.06);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
     border-radius: 16px; padding: 28px 22px;
-    transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transition: transform 0.25s var(--ease-out), border-color 0.25s var(--ease-out), background 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
     position: relative; overflow: hidden;
   }
   .feature-card::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
     background: linear-gradient(90deg, transparent, rgba(167,139,250,0.4), transparent);
-    opacity: 0; transition: opacity 0.35s;
+    opacity: 0; transition: opacity 0.25s;
   }
   .feature-card:hover {
     transform: translateY(-6px);
@@ -257,9 +308,9 @@
     box-shadow: 0 16px 48px -16px rgba(124,58,237,0.25), 0 0 0 1px rgba(167,139,250,0.08) inset;
   }
   .feature-card:hover::before { opacity: 1; }
-  .feature-icon { font-size: 1.8rem; margin-bottom: 14px; display: block; }
+  .feature-card .icon-md { margin-bottom: 14px; display: block; color: var(--color-accent); }
   .feature-card h3 { font-size: 1rem; font-weight: 700; color: #e2e8f0; margin-bottom: 6px; }
-  .feature-card p  { font-size: 0.84rem; color: #8892b0; line-height: 1.7; }
+  .feature-card p  { font-size: 0.84rem; color: var(--color-muted); line-height: 1.7; }
 
   /* Workflow */
   .workflow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; padding-bottom: 8px; position: relative; }
@@ -274,7 +325,7 @@
     box-shadow: 0 4px 16px rgba(99,102,241,0.3);
   }
   .workflow-step h4 { font-size: 0.88rem; font-weight: 700; color: #e2e8f0; margin-bottom: 2px; }
-  .workflow-step p  { font-size: 0.76rem; color: #64748b; line-height: 1.6; }
+  .workflow-step p  { font-size: 0.76rem; color: var(--color-dim); line-height: 1.6; }
   .workflow-connector {
     position: absolute; top: 40px; right: -14px;
     color: #6366f1; font-size: 1.1rem; font-weight: 700;
@@ -285,11 +336,10 @@
   .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding-bottom: 8px; }
   @media (max-width: 600px) { .compare-grid { grid-template-columns: 1fr; } }
   .compare-card {
-    background: rgba(255,255,255,0.025);
-    border: 1px solid rgba(255,255,255,0.06);
+    background: var(--color-surface); border: 1px solid var(--color-border);
     border-radius: 16px; padding: 28px;
   }
-  .compare-card:nth-child(1) { border-top: 2px solid #a78bfa; }
+  .compare-card:nth-child(1) { border-top: 2px solid var(--color-accent); }
   .compare-card:nth-child(2) { border-top: 2px solid #60a5fa; }
   .compare-card-badge {
     display: inline-block; padding: 3px 12px; border-radius: 10px;
@@ -299,7 +349,7 @@
   .badge-auto  { background: rgba(96,165,250,0.15); color: #93c5fd; }
   .compare-card h4 { font-size: 1rem; font-weight: 700; color: #e2e8f0; margin-bottom: 10px; }
   .compare-card li {
-    font-size: 0.83rem; color: #8892b0; line-height: 1.8;
+    font-size: 0.83rem; color: var(--color-muted); line-height: 1.8;
     padding-left: 18px; position: relative; list-style: none;
   }
   .compare-card li::before {
@@ -309,9 +359,9 @@
   /* Tech */
   .tech-grid { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; padding-bottom: 8px; }
   .tech-badge {
-    padding: 6px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600;
+    padding: 6px 16px; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 600;
     background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid var(--color-border);
     color: #94a3b8;
   }
 
@@ -321,16 +371,17 @@
     background: rgba(255,255,255,0.02);
     border: 1px solid rgba(255,255,255,0.05);
     border-radius: 12px; padding: 18px 24px;
-    transition: border-color 0.2s, background 0.2s;
+    transition: border-color 0.2s, background 0.2s; cursor: pointer;
   }
   .faq-item:hover { border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); }
   .faq-q { font-size: 0.9rem; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; }
-  .faq-a { font-size: 0.82rem; color: #8892b0; line-height: 1.7; }
+  .faq-a { font-size: 0.82rem; color: var(--color-muted); line-height: 1.7; }
 
   .footer-bar {
     border-top: 1px solid rgba(255,255,255,0.05);
     text-align: center; padding: 32px 0; color: #475569; font-size: 0.8rem;
   }
+
   .spinner {
     display: inline-block; width: 18px; height: 18px;
     border: 2.5px solid rgba(255,255,255,0.2);
@@ -339,14 +390,26 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
   .hidden { display: none !important; }
+
+  /* ===== Reduced motion ===== */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 </style>
 </head>
 <body>
+<a href="#upload" class="skip-link">跳转到上传区</a>
 <div class="bg-ambient"></div>
 
-<nav class="navbar" id="navbar">
+<!-- Navbar -->
+<nav class="navbar" id="navbar" aria-label="主导航">
   <div class="nav-brand">Zimu</div>
-  <ul class="nav-links">
+  <ul class="nav-links" role="list">
     <li><a href="#features">功能</a></li>
     <li><a href="#how-it-works">流程</a></li>
     <li><a href="#modes">双模式</a></li>
@@ -354,77 +417,77 @@
   </ul>
 </nav>
 
-<div class="page">
+<div class="page" id="main-content">
 
   <!-- Hero -->
-  <section class="hero section">
+  <header class="hero section">
     <div class="hero-label">AI-Powered Subtitle Engine</div>
     <h1>智能视频字幕生成与合成</h1>
     <p>上传视频，自动识别语音或对齐文稿 — 输出带字幕的视频文件</p>
-  </section>
+  </header>
 
-  <!-- ====== UPLOAD — 核心功能区，直接放在首屏 ====== -->
-  <section class="upload-section">
+  <!-- ==== UPLOAD ==== -->
+  <section class="upload-section" id="upload" aria-label="上传文件">
     <div class="upload-main-card">
       <div class="upload-grid">
-        <div class="upload-card" id="videoCard">
-          <span class="upload-card-icon">🎬</span>
+        <div class="upload-card" id="videoCard" role="button" aria-label="选择视频文件">
+          <svg class="icon icon-lg upload-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="10 8 16 12 10 16 10 8"/><path d="M2 7h20"/></svg>
           <div class="upload-card-title">视频文件 <span class="tag tag-required">必填</span></div>
           <div class="upload-card-hint">MP4 · MOV · AVI · MKV · WebM</div>
           <div class="upload-card-name" id="videoName"></div>
-          <input type="file" id="videoInput" accept=".mp4,.mov,.avi,.mkv,.webm">
+          <input type="file" id="videoInput" accept=".mp4,.mov,.avi,.mkv,.webm" aria-label="选择视频文件">
         </div>
-        <div class="upload-card" id="docCard">
-          <span class="upload-card-icon">📄</span>
+        <div class="upload-card" id="docCard" role="button" aria-label="选择文稿文件（可选）">
+          <svg class="icon icon-lg upload-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
           <div class="upload-card-title">文稿文件 <span class="tag tag-optional">可选</span></div>
           <div class="upload-card-hint">.docx · .txt — 不传则自动语音识别</div>
           <div class="upload-card-name" id="docName"></div>
-          <input type="file" id="docInput" accept=".docx,.txt">
+          <input type="file" id="docInput" accept=".docx,.txt" aria-label="选择文稿文件（可选）">
         </div>
       </div>
       <div class="options-row">
         <div class="option-group">
           <span class="option-label">GPU 加速</span>
-          <label class="toggle">
-            <input type="checkbox" id="gpuToggle">
-            <span class="toggle-slider"></span>
+          <label class="toggle" aria-label="启用 GPU 加速">
+            <input type="checkbox" id="gpuToggle" role="switch">
+            <span class="toggle-slider" aria-hidden="true"></span>
           </label>
         </div>
         <div class="option-group">
           <span class="option-label">中英双语</span>
-          <label class="toggle">
-            <input type="checkbox" id="bilingualToggle">
-            <span class="toggle-slider"></span>
+          <label class="toggle" aria-label="启用中英双语字幕">
+            <input type="checkbox" id="bilingualToggle" role="switch">
+            <span class="toggle-slider" aria-hidden="true"></span>
           </label>
         </div>
         <div class="option-group">
-          <span class="option-label">字幕颜色</span>
-          <input type="color" class="color-input" id="colorPicker" value="#000000">
-          <span class="color-hex" id="colorHex">#000000</span>
+          <label class="option-label" for="colorPicker">字幕颜色</label>
+          <input type="color" class="color-input" id="colorPicker" value="#000000" aria-label="字幕文字颜色">
+          <span class="color-hex" id="colorHex" aria-live="polite">#000000</span>
         </div>
       </div>
       <div class="btn-row">
-        <button class="btn btn-primary" id="submitBtn" disabled>请先选择视频文件</button>
+        <button class="btn btn-primary" id="submitBtn" disabled aria-busy="false">请先选择视频文件</button>
       </div>
     </div>
   </section>
 
-  <!-- Feedback panels — same width as upload -->
-  <section class="feedback-panel">
-    <div class="progress-panel" id="progressPanel">
-      <div class="progress-label"><span class="spinner"></span> <span id="progressStage">准备中...</span></div>
-      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+  <!-- Feedback panels -->
+  <section class="feedback-panel" aria-live="polite">
+    <div class="progress-panel" id="progressPanel" role="status">
+      <div class="progress-label"><span class="spinner" aria-hidden="true"></span> <span id="progressStage">准备中...</span></div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div></div>
       <div class="progress-pct" id="progressPct">0%</div>
     </div>
-    <div class="result-panel" id="resultPanel">
-      <div class="result-check">&#10004;</div>
+    <div class="result-panel" id="resultPanel" role="alert">
+      <svg class="icon result-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="16 10 11 15 8 12"/></svg>
       <div class="result-title">处理完成</div>
       <div class="result-actions">
         <a class="btn btn-download" id="downloadVideo" href="#" download>下载带字幕视频</a>
         <a class="btn btn-download" id="downloadSubtitle" href="#" download>下载字幕 (.srt)</a>
       </div>
     </div>
-    <div class="error-panel" id="errorPanel">
+    <div class="error-panel" id="errorPanel" role="alert">
       <div class="error-title">处理出错</div>
       <div class="error-body" id="errorBody"></div>
     </div>
@@ -433,45 +496,45 @@
   <!-- ====== Below the fold ====== -->
 
   <div class="section-heading" id="features"><h2>核心能力</h2><p>一个工具，覆盖两种字幕生产场景</p></div>
-  <div class="section-divider"></div>
-  <section class="section features">
+  <div class="section-divider" aria-hidden="true"></div>
+  <section class="section features" aria-label="功能介绍">
     <div class="feature-card">
-      <span class="feature-icon">🎙️</span>
+      <svg class="icon icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
       <h3>自动语音识别</h3>
       <p>基于 OpenAI Whisper 深度学习模型，自动提取视频音轨并生成逐字时间戳，中文识别准确率业界领先。</p>
     </div>
     <div class="feature-card">
-      <span class="feature-icon">📝</span>
+      <svg class="icon icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       <h3>文稿强制对齐</h3>
       <p>上传 .docx 或 .txt 文稿，系统通过 Smith-Waterman 对齐算法将文案精确映射到视频时间轴。</p>
     </div>
     <div class="feature-card">
-      <span class="feature-icon">🎬</span>
+      <svg class="icon icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
       <h3>智能断句 + 烧录</h3>
       <p>智能识别英文单词边界与中文标点断句，杜绝"python"被截断。黑色字幕 + 白色描边，清晰可读。</p>
     </div>
   </section>
 
   <div class="section-heading" id="how-it-works"><h2>处理流程</h2><p>从上传到输出，四个步骤一气呵成</p></div>
-  <div class="section-divider"></div>
-  <section class="section workflow">
+  <div class="section-divider" aria-hidden="true"></div>
+  <section class="section workflow" aria-label="处理流程">
     <div class="workflow-step">
       <div class="workflow-step-num">1</div>
       <h4>提取音频</h4>
       <p>FFmpeg 分离出 16kHz 单声道 WAV</p>
-      <span class="workflow-connector">→</span>
+      <span class="workflow-connector" aria-hidden="true">→</span>
     </div>
     <div class="workflow-step">
       <div class="workflow-step-num">2</div>
       <h4>语音识别</h4>
       <p>Whisper 转录，输出逐词时间戳</p>
-      <span class="workflow-connector">→</span>
+      <span class="workflow-connector" aria-hidden="true">→</span>
     </div>
     <div class="workflow-step">
       <div class="workflow-step-num">3</div>
       <h4>字幕生成</h4>
       <p>文稿对齐 / 直接转录 → 智能断句 → SRT</p>
-      <span class="workflow-connector">→</span>
+      <span class="workflow-connector" aria-hidden="true">→</span>
     </div>
     <div class="workflow-step">
       <div class="workflow-step-num">4</div>
@@ -481,12 +544,12 @@
   </section>
 
   <div class="section-heading" id="modes"><h2>两种工作模式</h2><p>根据是否提供文稿，系统自动选择最佳策略</p></div>
-  <div class="section-divider"></div>
-  <section class="section compare-grid">
+  <div class="section-divider" aria-hidden="true"></div>
+  <section class="section compare-grid" aria-label="工作模式对比">
     <div class="compare-card">
       <span class="compare-card-badge badge-script">Case A · 有文稿</span>
       <h4>文稿强制对齐模式</h4>
-      <ul>
+      <ul role="list">
         <li>上传视频 + .docx / .txt 文稿</li>
         <li>解析文稿为句子序列</li>
         <li>Smith-Waterman 字符级对齐</li>
@@ -497,7 +560,7 @@
     <div class="compare-card">
       <span class="compare-card-badge badge-auto">Case B · 无文稿</span>
       <h4>全自动语音识别模式</h4>
-      <ul>
+      <ul role="list">
         <li>仅需上传视频文件</li>
         <li>Whisper 直接转录语音内容</li>
         <li>自动生成时间戳与字幕</li>
@@ -508,8 +571,8 @@
   </section>
 
   <div class="section-heading"><h2>技术栈</h2><p>基于开源工具构建，可本地部署</p></div>
-  <div class="section-divider"></div>
-  <section class="section tech-grid">
+  <div class="section-divider" aria-hidden="true"></div>
+  <section class="section tech-grid" aria-label="技术栈">
     <span class="tech-badge">Python FastAPI</span>
     <span class="tech-badge">OpenAI Whisper</span>
     <span class="tech-badge">FFmpeg</span>
@@ -521,8 +584,8 @@
   </section>
 
   <div class="section-heading" id="faq"><h2>常见问题</h2></div>
-  <div class="section-divider"></div>
-  <section class="section faq-list">
+  <div class="section-divider" aria-hidden="true"></div>
+  <section class="section faq-list" aria-label="常见问题">
     <div class="faq-item">
       <div class="faq-q">支持哪些语言？</div>
       <div class="faq-a">默认配置为中文。修改 config.py 中 WHISPER_LANGUAGE 可切换至英文、日语等 99 种语言。中英混合场景也有良好表现。</div>
@@ -541,7 +604,7 @@
     </div>
   </section>
 
-  <footer class="footer-bar">&copy; 2026 Zimu · Whisper + FFmpeg · 本地可部署<br><span style="color:#6366f1;">作者：我的token都去哪了</span></footer>
+  <footer class="footer-bar" role="contentinfo">&copy; 2026 Zimu · Whisper + FFmpeg · 本地可部署<br><span style="color:#6366f1;">作者：我的token都去哪了</span></footer>
 </div>
 
 <script>
@@ -563,7 +626,7 @@
   const errorPanel    = $('errorPanel');
   const errorBody     = $('errorBody');
   const navbar        = $('navbar');
-  const gpuToggle    = $('gpuToggle');
+  const gpuToggle      = $('gpuToggle');
   const bilingualToggle = $('bilingualToggle');
   const colorPicker   = $('colorPicker');
   const colorHex      = $('colorHex');
@@ -578,7 +641,6 @@
 
   window.addEventListener('scroll', () => navbar.classList.toggle('scrolled', window.scrollY > 20));
 
-  // Color picker label sync
   colorPicker.addEventListener('input', () => { colorHex.textContent = colorPicker.value; });
 
   function updateBtn() {
@@ -618,6 +680,7 @@
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const d = await r.json();
         progressFill.style.width = d.progress + '%';
+        progressFill.setAttribute('aria-valuenow', Math.round(d.progress));
         progressPct.textContent = Math.round(d.progress) + '%';
         if (d.stage && STAGE_LABELS[d.stage]) progressStage.textContent = STAGE_LABELS[d.stage];
 
@@ -626,6 +689,7 @@
           resultPanel.classList.add('visible');
           downloadVideo.href = d.download_url; downloadSub.href = d.subtitle_url;
           submitBtn.disabled = false; submitBtn.innerHTML = '开始生成字幕';
+          submitBtn.setAttribute('aria-busy', 'false');
           return;
         }
         if (d.status === 'error') {
@@ -633,6 +697,7 @@
           errorPanel.classList.add('visible');
           errorBody.textContent = d.error_message || '未知错误';
           submitBtn.disabled = false; submitBtn.innerHTML = '开始生成字幕';
+          submitBtn.setAttribute('aria-busy', 'false');
           return;
         }
         await new Promise(r => setTimeout(r, 1000));
@@ -640,6 +705,7 @@
         errorPanel.classList.add('visible');
         errorBody.textContent = '状态查询失败: ' + err.message;
         submitBtn.disabled = false; submitBtn.innerHTML = '开始生成字幕';
+        submitBtn.setAttribute('aria-busy', 'false');
         return;
       }
     }
@@ -651,6 +717,7 @@
     resultPanel.classList.remove('visible');
     errorPanel.classList.remove('visible');
     submitBtn.disabled = true;
+    submitBtn.setAttribute('aria-busy', 'true');
     submitBtn.innerHTML = '<span class="spinner"></span> 处理中...';
     progressPanel.classList.add('visible');
     progressStage.textContent = '正在上传文件...';
@@ -673,6 +740,7 @@
       errorPanel.classList.add('visible');
       errorBody.textContent = err.message;
       submitBtn.disabled = false; submitBtn.innerHTML = '开始生成字幕';
+      submitBtn.setAttribute('aria-busy', 'false');
     }
   });
 </script>
