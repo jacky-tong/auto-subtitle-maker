@@ -18,67 +18,41 @@ class SubtitleService:
 
     @staticmethod
     def build_srt(entries: list[SubtitleEntry], bilingual: bool = False) -> str:
-        """Convert subtitle entries to SRT format string."""
+        """Convert subtitle entries to SRT format.
+
+        Chinese timing & splitting is determined FIRST (independent of bilingual).
+        English is then appended below each Chinese chunk without affecting timing.
+        """
         lines: list[str] = []
         index = 1
         for entry in entries:
-            # Build display text — bilingual gets both languages
-            if bilingual and entry.text_en:
-                display_text = f"{entry.text}\n{entry.text_en}"
-            else:
-                display_text = entry.text
+            # Split Chinese text first — determines all timing
+            cn_chunks = SubtitleService._split_single_line(
+                entry.text, entry.start, entry.end, len(entry.text)
+            )
 
-            chunks = SubtitleService._split_long_line(display_text, entry.start, entry.end)
-            for chunk in chunks:
+            for chunk in cn_chunks:
+                if bilingual and entry.text_en:
+                    # Append English below Chinese, preserving Chinese timing
+                    display = f"{chunk.text}\n{entry.text_en}"
+                else:
+                    display = chunk.text
+
                 lines.append(str(index))
                 lines.append(
                     f"{SubtitleService._fmt_time(chunk.start)} --> "
                     f"{SubtitleService._fmt_time(chunk.end)}"
                 )
-                lines.append(chunk.text)
+                lines.append(display)
                 lines.append("")
                 index += 1
         return "\n".join(lines)
 
     @staticmethod
-    def _split_long_line(
-        text: str, start: float, end: float
-    ) -> list[SubtitleEntry]:
-        """Split a long line at natural word boundaries. Never breaks inside a Latin word."""
-        text = text.strip()
-        if not text:
-            return []
-
-        # For bilingual: count only the longest line
-        effective_len = max(len(ln) for ln in text.split("\n")) if "\n" in text else len(text)
-
-        if effective_len <= SubtitleService.MAX_CHARS_PER_LINE:
-            return [SubtitleEntry(text=text, start=start, end=end)]
-
-        # For bilingual, split each line independently then merge
-        if "\n" in text:
-            zh_line, en_line = text.split("\n", 1)
-            zh_chunks = SubtitleService._split_single_line(zh_line, start, end, len(text))
-            en_chunks = SubtitleService._split_single_line(en_line, start, end, len(text))
-            # Merge: take max chunk count, match them up
-            max_chunks = max(len(zh_chunks), len(en_chunks))
-            result: list[SubtitleEntry] = []
-            for i in range(max_chunks):
-                zh = zh_chunks[i].text if i < len(zh_chunks) else ""
-                en = en_chunks[i].text if i < len(en_chunks) else ""
-                st = zh_chunks[i].start if i < len(zh_chunks) else en_chunks[i].start
-                ed = zh_chunks[i].end if i < len(zh_chunks) else en_chunks[i].end
-                combined = f"{zh}\n{en}".strip()
-                result.append(SubtitleEntry(text=combined, start=st, end=ed))
-            return result
-
-        return SubtitleService._split_single_line(text, start, end, len(text))
-
-    @staticmethod
     def _split_single_line(
         text: str, start: float, end: float, total_len: int
     ) -> list[SubtitleEntry]:
-        """Split a single-language line."""
+        """Split a single-language line into chunks."""
         text = text.strip()
         if not text:
             return []
@@ -125,7 +99,7 @@ class SubtitleService:
 
         # 2. Soft punctuation
         for pos in range(best, min_search - 1, -1):
-            if pos < len(text) and text[pos - 1] in '.!?;，,、…—-':
+            if pos < len(text) and text[pos - 1] in '.!?;，、…—-':
                 return pos
 
         # 3. Space
@@ -133,9 +107,9 @@ class SubtitleService:
             if pos < len(text) and text[pos - 1] in ' \t':
                 return pos
 
-        # 4. Scan forward for any break
+        # 4. Scan forward
         for pos in range(best + 1, min(len(text), SubtitleService.HARD_LIMIT)):
-            if text[pos - 1] in '。！？；\n.!?;，,、…—- \t':
+            if text[pos - 1] in '。！？；\n.!?;，、…—- \t':
                 return pos
 
         # 5. Safe boundary at HARD_LIMIT
