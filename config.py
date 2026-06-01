@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -43,6 +44,11 @@ def _find_ffprobe() -> str:
 
 FFMPEG_PATH: str = _find_ffmpeg()
 FFPROBE_PATH: str = _find_ffprobe()
+
+# Ensure ffmpeg dir is in PATH (Whisper needs it internally)
+_ffmpeg_dir = str(Path(FFMPEG_PATH).parent)
+if _ffmpeg_dir not in os.environ.get("PATH", ""):
+    os.environ["PATH"] = _ffmpeg_dir + os.pathsep + os.environ.get("PATH", "")
 
 MAX_UPLOAD_SIZE_MB: int = 500
 CLEANUP_AGE_HOURS: int = 6
