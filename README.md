@@ -6,57 +6,60 @@
   <img src="https://img.shields.io/badge/license-MIT-purple?style=flat-square" alt="License">
 </p>
 
-<h1 align="center">Zimu 字幕</h1>
+<h1 align="center">SubtitleForge</h1>
 <p align="center"><strong>智能视频字幕自动生成与合成工具</strong></p>
-<p align="center">上传视频 → 自动识别语音或对齐文稿 → 下载带字幕的视频</p>
+<p align="center">AI-Powered Video Subtitle Generation &amp; Synthesis</p>
+<p align="center">Upload a video → Auto speech-to-text or script alignment → Download video with burned-in subtitles</p>
 
 <p align="center">
-  <sub>作者：<a href="https://github.com/jacky-tong">我的token都去哪了</a></sub>
+  <sub>Author: <a href="https://github.com/jacky-tong">我的token都去哪了</a></sub>
 </p>
 
 ---
 
-## Features 功能
+## Features
 
-<table>
-<tr>
-<td width="50%">
+### 🎙️ Auto Speech Recognition (Case B — No Script)
+Upload a video without any script. The system uses **OpenAI Whisper**, a state-of-the-art deep learning model, to automatically extract the audio track and generate word-level timestamps. Whisper delivers industry-leading accuracy for Chinese speech recognition and handles mixed Chinese-English scenarios.
 
-### 🎙️ 自动语音识别 (Case B)
-无需文稿，上传视频即可。基于 **OpenAI Whisper** 深度学习模型，自动提取音轨并生成逐字时间戳。中文识别准确率业界领先，支持中英混合场景。**支持 GPU 加速**（CUDA），勾选即可大幅提升推理速度。
+**How it works:**
+1. FFmpeg extracts the audio track as 16kHz mono WAV
+2. Whisper transcribes the audio with precise word-level timestamps
+3. The transcribed text is split into readable subtitle lines (intelligently respecting word boundaries)
+4. FFmpeg burns the subtitles directly into the video
 
-</td>
-<td width="50%">
+### 📝 Forced Script Alignment (Case A — With Script)
+If you already have a script (.docx or .txt), upload it alongside the video. The system uses a **Smith-Waterman local alignment algorithm** at the character level to precisely map every sentence in your script to the correct timestamp on the video timeline.
 
-### 📝 文稿强制对齐 (Case A)
-上传 `.docx` / `.txt` 文稿，系统通过 **Smith-Waterman 局部对齐算法** 将文案精确映射到视频时间轴。字幕文字严格遵循原稿，适合有现成文案的解说视频、课程录像。
+**How it works:**
+1. The document is parsed into sentences
+2. Whisper still runs to detect speech timing and word boundaries
+3. The Smith-Waterman algorithm aligns script characters against Whisper's output, tolerating ASR errors
+4. Each script sentence gets accurate start/end timestamps mapped from the alignment path
+5. The subtitles follow your script exactly — what you wrote is what appears on screen
 
-</td>
-</tr>
-<tr>
-<td>
+### ✂️ Smart Line Splitting
+Subtitles are split at natural boundaries: **Chinese punctuation marks, spaces, and word boundaries**. English words like "python" are NEVER split across lines. The splitting algorithm searches for the optimal break point near the character limit, preferring punctuation > space > word boundary, with a hard fallback limit.
 
-### ✂️ 智能断句
-拒绝 "python" 被截断为 "pyth / on"。智能识别英文单词边界、中文标点、自然换气点，确保每条字幕完整可读。
+### 🎨 Customizable Subtitle Style
+- **Default:** Black text with white outline (2px) — highly readable on any video background
+- **Color picker:** Choose any subtitle text color via the built-in color selector
+- **Style:** Rendered via FFmpeg ASS subtitle filter (Arial, 18px, bottom-centered)
 
-</td>
-<td>
+### 🌐 Bilingual Subtitles (Chinese + English)
+Toggle on to add English subtitles below each Chinese line. Translation is powered by **MyMemory** (free, no API key required). Eight concurrent translation workers process subtitle entries in parallel for speed. Chinese timing and display remain **completely independent** of the bilingual toggle.
 
-### 🎬 一键烧录硬字幕
-**黑色文字 + 白色描边**，通过 FFmpeg ASS 滤镜渲染。清晰可读，适配任何视频背景。处理完成后直接下载 MP4 和 SRT 文件。
-
-</td>
-</tr>
-</table>
+### ⚡ GPU Acceleration
+Toggle GPU acceleration to run Whisper inference on **CUDA**-enabled NVIDIA GPUs. Speeds up transcription significantly compared to CPU inference.
 
 ---
 
-## Quick Start 快速开始
+## Quick Start
 
-### 环境要求
+### Prerequisites
 
 - **Python** 3.8+
-- **FFmpeg**（需在 PATH 中可用）
+- **FFmpeg** (must be in PATH or auto-detected from conda)
 
 ```bash
 # macOS
@@ -69,91 +72,93 @@ winget install ffmpeg
 sudo apt install ffmpeg
 ```
 
-### 安装 & 启动
+### Install & Run
 
 ```bash
-# 1. 克隆项目
+# 1. Clone
 git clone https://github.com/jacky-tong/auto-subtitle-maker.git
 cd auto-subtitle-maker
 
-# 2. 安装依赖
+# 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. 启动服务
+# 3. Start server
 python -m uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-或者 **双击 `启动.bat`**（Windows），自动完成上述步骤并打开浏览器。
+**Or double-click `启动.bat`** (Windows) to auto-install dependencies, start the server, and open the browser.
 
-浏览器访问 **http://localhost:8000** 即可使用。
+Open **http://localhost:8000** in your browser.
 
-首次启动会自动下载 Whisper 模型（tiny 约 72MB，medium 约 1.4GB）。
+On first launch, Whisper downloads the model automatically (tiny: ~72MB, medium: ~1.4GB).
 
 ---
 
-## How It Works 原理
+## How It Works
 
 ```
-上传视频 (+文稿)
+Upload Video (+ optional Script)
       │
       ▼
-┌──────────────┐
-│ 1. 提取音频   │  FFmpeg → 16kHz 单声道 WAV
-└──────┬───────┘
-       ▼
-┌──────────────┐
-│ 2. 语音识别   │  Whisper → 逐词时间戳
-└──────┬───────┘
-       ▼
-  ┌────┴────┐
-  │ 有文稿？  │
-  └────┬────┘
-  Yes  │  No
-  ┌────┴────┐
-  │ Smith-  │  Whisper
-  │Waterman │  直接输出
-  └────┬────┘
-       ▼
-┌──────────────┐
-│ 3. 生成字幕   │  智能断句 → SRT 格式
-└──────┬───────┘
-       ▼
-┌──────────────┐
-│ 4. 烧录合成   │  FFmpeg subtitles 滤镜
-└──────────────┘
-       │
-       ▼
-  带字幕视频.mp4  +  字幕.srt
+┌──────────────────┐
+│ 1. Extract Audio  │  FFmpeg → 16kHz mono WAV
+└────────┬─────────┘
+         ▼
+┌──────────────────┐
+│ 2. Transcribe     │  Whisper → word-level timestamps
+└────────┬─────────┘
+         ▼
+    ┌────┴────┐
+    │ Script?  │
+    └────┬────┘
+   Yes  │  No
+   ┌────┴────┐
+   │ Smith-  │  Direct
+   │Waterman │  Whisper
+   └────┬────┘
+        ▼
+┌──────────────────┐
+│ 3. Translate      │  (if bilingual) MyMemory 8× parallel
+│    + Build SRT    │  Smart line splitting
+└────────┬─────────┘
+         ▼
+┌──────────────────┐
+│ 4. Burn Subtitles │  FFmpeg ASS filter → hard subtitles
+└──────────────────┘
+         │
+         ▼
+   subtitled_video.mp4  +  subtitle.srt
 ```
 
 ---
 
-## Tech Stack 技术栈
+## Tech Stack
 
-| 组件 | 技术 | 用途 |
-|------|------|------|
-| 后端框架 | **FastAPI** | HTTP API + 异步任务 |
-| 语音识别 | **OpenAI Whisper** | 音频转录 + 逐词时间戳 + GPU 加速 |
-| 强制对齐 | **Smith-Waterman** | 文稿 → 时间轴映射 |
-| 视频处理 | **FFmpeg** | 音频提取 + 字幕烧录 |
-| 文档解析 | **python-docx** | .docx / .txt 读取 |
-| 前端 | **原生 HTML/CSS/JS** | 零依赖单文件 UI |
+| Component | Technology | Role |
+|-----------|-----------|------|
+| Backend | **FastAPI** | HTTP API + async task orchestration |
+| Speech Recognition | **OpenAI Whisper** | Audio transcription + word timestamps |
+| Forced Alignment | **Smith-Waterman** | Character-level script-to-timeline mapping |
+| Video Processing | **FFmpeg** | Audio extraction + subtitle burning |
+| Translation | **MyMemory** | Free bilingual translation (China-accessible) |
+| Document Parsing | **python-docx** | .docx / .txt reading |
+| Frontend | **Vanilla HTML/CSS/JS** | Zero-dependency single-file UI with SVG icons |
 
 ---
 
-## Configuration 配置
+## Configuration
 
-编辑 `config.py`：
+Edit `config.py` to customize:
 
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| `WHISPER_MODEL_SIZE` | `medium` | 模型大小：tiny / base / small / medium / large-v3 |
-| `WHISPER_LANGUAGE` | `zh` | 识别语言（99 种可选） |
-| `WHISPER_DEVICE` | `cpu` | 默认推理设备：cpu / cuda（可在页面中切换 GPU 加速） |
-| `MAX_UPLOAD_SIZE_MB` | `500` | 上传大小上限 |
-| `CLEANUP_AGE_HOURS` | `6` | 生成文件过期时间 |
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `WHISPER_MODEL_SIZE` | `medium` | Model size: tiny / base / small / medium / large-v3 |
+| `WHISPER_LANGUAGE` | `zh` | Recognition language (99 supported) |
+| `WHISPER_DEVICE` | `cpu` | Inference device: cpu / cuda (toggle in UI) |
+| `MAX_UPLOAD_SIZE_MB` | `500` | Max upload file size |
+| `CLEANUP_AGE_HOURS` | `6` | Auto-delete processed files after N hours |
 
-模型选择建议：**tiny** 最快占内存最少（测试用），**medium** 平衡推荐日常，**large-v3** 最准需要大显存 GPU。
+**Model recommendations:** `tiny` for quick testing (fastest, least accurate), `medium` for daily use (balanced), `large-v3` for best accuracy (needs GPU + memory).
 
 ---
 
@@ -161,50 +166,62 @@ python -m uvicorn main:app --host 0.0.0.0 --port 8000
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/api/upload` | 上传视频 + 可选文稿 |
-| `GET` | `/api/task/{id}` | 查询处理进度 |
-| `GET` | `/api/download/video/{id}` | 下载带字幕视频 |
-| `GET` | `/api/download/subtitle/{id}` | 下载 SRT 字幕 |
-| `DELETE` | `/api/task/{id}` | 删除任务 |
+| `POST` | `/api/upload` | Upload video (+ optional doc, bilingual toggle, color, GPU toggle) |
+| `GET` | `/api/task/{id}` | Poll processing status, progress, stage, download URLs |
+| `GET` | `/api/download/video/{id}` | Download the subtitled video (MP4) |
+| `GET` | `/api/download/subtitle/{id}` | Download the raw SRT subtitle file |
+| `DELETE` | `/api/task/{id}` | Delete task and all associated files |
 
 ---
 
-## Project Structure 项目结构
+## Project Structure
 
 ```
 auto-subtitle-maker/
-├── main.py                  # FastAPI 入口
-├── config.py                # 全局配置
-├── requirements.txt         # Python 依赖
-├── 启动.bat                  # Windows 一键启动
+├── main.py                  # FastAPI app entry point
+├── config.py                # Global settings + ffmpeg auto-detection
+├── requirements.txt         # Python dependencies
+├── 启动.bat                  # Windows one-click launcher
 ├── routers/
-│   └── api.py               # HTTP 路由
+│   └── api.py               # HTTP endpoints (upload, status, download)
 ├── models/
-│   ├── task.py              # 任务状态机
-│   └── schemas.py           # 数据模型
+│   ├── task.py              # Task state machine + in-memory store
+│   └── schemas.py           # Pydantic request/response models
 ├── services/
-│   ├── pipeline.py          # 处理流水线
-│   ├── whisper_service.py   # Whisper 封装
-│   ├── aligner.py           # 强制对齐算法 ★
-│   ├── subtitle_service.py  # SRT 生成 + 智能断句
-│   ├── video_service.py     # FFmpeg 调用
-│   ├── doc_parser.py        # 文档解析
-│   └── file_manager.py      # 文件清理
+│   ├── pipeline.py          # Processing orchestrator (5 stages)
+│   ├── whisper_service.py   # Whisper wrapper with device switching
+│   ├── aligner.py           # Smith-Waterman forced alignment ★
+│   ├── subtitle_service.py  # SRT builder + smart line splitting
+│   ├── video_service.py     # FFmpeg subprocess (audio + burn)
+│   ├── translation_service.py  # MyMemory parallel translation
+│   ├── doc_parser.py        # .docx / .txt → sentence list
+│   └── file_manager.py      # Periodic file cleanup
 ├── utils/
-│   └── text_utils.py        # 文本处理
+│   └── text_utils.py        # Chinese sentence splitting, normalization
 ├── static/
-│   └── index.html           # 前端 UI
-└── storage/                 # 上传 & 输出目录
+│   └── index.html           # Single-page frontend (SVG icons, a11y)
+└── storage/                 # Upload & output directories
+```
+
+---
+
+## Subtitle Style
+
+```
+Font: Arial, 18px
+Text color: Configurable (default black #000000)
+Outline: White, 2px width
+Border style: Outline (BorderStyle=1)
+Alignment: Bottom-center (Alignment=2)
+Format: ASS (rendered by FFmpeg subtitles filter)
 ```
 
 ---
 
 ## License
 
-MIT License — 自由使用、修改、分发。
+MIT License — free to use, modify, and distribute.
 
 ---
 
-<p align="center">
-  <sub>Built with ❤️ by <a href="https://github.com/jacky-tong">我的token都去哪了</a></sub>
-</p>
+<p align="center"><sub>Built with ❤️ by <a href="https://github.com/jacky-tong">我的token都去哪了</a></sub></p>
